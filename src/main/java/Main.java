@@ -30,12 +30,16 @@ public class Main {
                 guild.upsertCommand("count", "Counts a user's messages in this guild.")
                         .addOption(OptionType.USER, "user", "Count the messages from this user.", true)
                         .complete();
+                guild.upsertCommand("help", "Opens the help menu.")
+                        .complete();
                 System.out.println("Upserted slash commands to " + guild.getName() + ".");
                 System.exit(0);
                 return;
             } else if (args[1].equals("global")) {
                 jda.upsertCommand("count", "Counts a user's messages in this guild.")
                         .addOption(OptionType.USER, "user", "Count the messages from this user.", true)
+                        .complete();
+                jda.upsertCommand("help", "Opens the help menu.")
                         .complete();
                 System.out.println("Upserted slash commands globally.");
                 System.exit(0);
