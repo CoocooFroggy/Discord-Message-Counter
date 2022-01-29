@@ -4,7 +4,7 @@ This bot will count every message a user has ever sent in a server. It will also
 [You can invite the bot here.](https://discord.com/api/oauth2/authorize?client_id=936819952374120479&permissions=65536&scope=bot%20applications.commands)
 
 ## Setup
-Run `gradle shadowjar` for a jar file which you can run with `java -jar`. You can also download from the [Releases](https://github.com/CoocooFroggy/Discord-Message-Counter/releases) tab.
+Run `gradlew shadowjar` for a jar file which you can run with `java -jar`. You can also download a built jar file from the [Releases](https://github.com/CoocooFroggy/Discord-Message-Counter/releases) tab.
 
 Set the environment variable `MESSAGE_COUNTER_TOKEN` to your bot's token.
 
