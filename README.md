@@ -10,5 +10,6 @@ Set the environment variable `MESSAGE_COUNTER_TOKEN` to your bot's token.
 
 ## Bot usage
 `/count [user]`: Counts how many messages a user has sent in the server, sending an embed with the number of messages per channel and in total.
+`/help`: Shows a help menu.
 
 Make sure the bot has permission to see messages in each channel you want counted, otherwise those channels will be skipped.
