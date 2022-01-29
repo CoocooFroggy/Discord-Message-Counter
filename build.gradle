@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+group 'com.coocoofroggy'
+version '1.0'
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://m2.dv8tion.net/releases'
+    }
+}
+
+dependencies {
+    implementation("net.dv8tion:JDA:4.4.0_350")
+    // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.10'
+}
+
+test {
+}
