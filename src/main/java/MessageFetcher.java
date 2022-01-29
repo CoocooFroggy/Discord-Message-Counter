@@ -81,7 +81,7 @@ public class MessageFetcher {
         embedBuilder.setDescription(
                 embedBuilder.getDescriptionBuilder().toString()
                         // Get rid of counting message and ping message
-                        .replace("Counting " + channel.getAsMention() + "...\n", "")
+                        .replace("Counting messages in " + channel.getAsMention() + "...\n", "")
                         .replace("We'll ping you when we're done counting.", "")
                         +
                         // #general: 5
