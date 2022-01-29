@@ -13,7 +13,7 @@ public class Main {
         String token = System.getenv("MESSAGE_COUNTER_TOKEN");
         JDABuilder jdaBuilder = JDABuilder
                 .createDefault(token)
-                .setActivity(Activity.watching("users' messages."));
+                .setActivity(Activity.watching("users' messages"));
         try {
             jda = jdaBuilder.build();
         } catch (LoginException e) {

@@ -36,7 +36,6 @@ public class MessageFetcher {
                 embedNoPerms(channel);
                 continue;
             }
-            System.out.println("Starting channel " + channel.getName());
             embedStartChannel(channel);
             // Loop through all messages
             for (Message message : channel.getIterableHistory()) {
