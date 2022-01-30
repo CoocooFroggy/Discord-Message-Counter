@@ -9,63 +9,106 @@ import java.util.function.Consumer;
 
 public class MessageFetcher {
     private final InteractionHook hook;
+    private final TextChannel channel;
     private final Guild guild;
-    private final User user;
+    private final User target;
     private final User runner;
+
     private final EmbedBuilder embedBuilder = new EmbedBuilder()
             .setColor(new Color(0xFF6A00))
             .setTitle("Working...")
             .setDescription("\nThis make take a while depending on the size of the server. We'll ping you when we're done counting.");
 
-    private final ArrayList<TextChannel> channelsToCount = new ArrayList<>();
+    private Message counterEmbedMessage;
+    private final ArrayList<GuildChannel> channelsToCount = new ArrayList<>();
     private int total = 0;
 
-    public MessageFetcher(InteractionHook hook, Guild guild, User user, User runner) {
+    public MessageFetcher(InteractionHook hook, TextChannel channel, Guild guild, User user, User runner) {
         this.hook = hook;
+        this.channel = channel;
         this.guild = guild;
-        this.user = user;
+        this.target = user;
         this.runner = runner;
 
         embedBuilder.setAuthor(user.getName(), null, user.getAvatarUrl());
     }
 
-    public void fetchMessageCount() {
-        hook.editOriginalEmbeds(embedBuilder.build()).queue();
+    public void startCounter() {
+        if (!channel.canTalk()) {
+            // Send in DMs
+            counterEmbedMessage = runner.openPrivateChannel().complete().sendMessageEmbeds(embedBuilder.build()).complete();
+        } else {
+            counterEmbedMessage = channel.sendMessageEmbeds(embedBuilder.build()).complete();
+        }
+
+        hook.sendMessage("Started. Check the sent embed for the current status.").queue();
+
         // Clone channels into our own editable list
-        channelsToCount.addAll(guild.getTextChannels());
-        // Loop through all messages
+        channelsToCount.addAll(guild.getChannels());
+        // Start counting
         countNextChannel();
     }
 
     private void countNextChannel() {
         if (channelsToCount.size() == 0) {
-            addTotalToEmbed(total);
-            hook.sendMessage("Finished counting.\n" + runner.getAsMention())
-                    .queue();
+            sendFinishedPing();
+            Listener.removeFromCurrentlyCounting(guild);
             return;
         }
-        TextChannel channel = channelsToCount.get(0);
-        // If they can't read messages, go to next channel
-        if (!guild.getSelfMember().hasPermission(channel, Permission.MESSAGE_READ)) {
-            embedNoPerms(channel);
-            channelsToCount.remove(channel);
+        GuildChannel channel = channelsToCount.get(0);
+        channelsToCount.remove(channel);
+
+        // If it is a category
+        if (channel instanceof Category) {
+            addCategoryToEmbed((Category) channel);
+            countNextChannel();
+            return;
+        } else if (channel instanceof VoiceChannel) {
+            // Do nothing for VCs
             countNextChannel();
             return;
         }
-        embedStartChannel(channel);
-        countMessagesInChannel(channel, (count) -> {
-            addChannelToEmbed(channel, count);
+
+        TextChannel textChannel = (TextChannel) channel;
+        // If they can't read messages, go to next channel
+        if (!guild.getSelfMember().hasPermission(textChannel, Permission.MESSAGE_READ)) {
+            embedNoPerms(textChannel);
+            countNextChannel();
+            return;
+        }
+        // Start counting the next channel
+        embedStartChannel(textChannel);
+        countMessagesInChannel(textChannel, (count) -> {
+            addChannelToEmbed(textChannel, count);
             total += count;
-            channelsToCount.remove(channel);
             countNextChannel();
         });
+    }
+
+    private void sendFinishedPing() {
+        addTotalToEmbed(total);
+        // If they can't send messages in this channel
+        if (!channel.canTalk()) {
+            runner.openPrivateChannel().queue((privateChannel -> {
+                // Send them a link to the finished embed
+                privateChannel
+                        .sendMessage("Finished counting.")
+//                        .setEmbeds(embedBuilder.build())
+                        .queue();
+            }));
+            return;
+        }
+        channel
+                .sendMessage("Finished counting.\n" + runner.getAsMention())
+                .reference(counterEmbedMessage)
+                .queue();
     }
 
     private void countMessagesInChannel(TextChannel channel, Consumer<Integer> callback) {
         // We have to make it an array of 1 element for some reason
         final int[] channelCount = {0};
         channel.getIterableHistory().forEachAsync((message) -> {
-            if (message.getAuthor().equals(user))
+            if (message.getAuthor().equals(target))
                 channelCount[0]++;
             return true;
         }).thenRun(() -> callback.accept(channelCount[0]));
@@ -81,7 +124,7 @@ public class MessageFetcher {
                         // Ping message
                         "\nThis make take a while depending on the size of the server. We'll ping you when we're done counting."
         );
-        hook.editOriginalEmbeds(embedBuilder.build()).queue();
+        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
     }
 
     private void embedNoPerms(TextChannel channel) {
@@ -94,7 +137,7 @@ public class MessageFetcher {
                         // Ping message
                         "\nThis make take a while depending on the size of the server. We'll ping you when we're done counting."
         );
-        hook.editOriginalEmbeds(embedBuilder.build()).queue();
+        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
     }
 
     private void addChannelToEmbed(TextChannel channel, int channelCount) {
@@ -109,7 +152,21 @@ public class MessageFetcher {
                         // Ping message
                         "\nThis make take a while depending on the size of the server. We'll ping you when we're done counting."
         );
-        hook.editOriginalEmbeds(embedBuilder.build()).queue();
+        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
+    }
+
+    private void addCategoryToEmbed(Category category) {
+        embedBuilder.setDescription(
+                embedBuilder.getDescriptionBuilder().toString()
+                        // Get rid of counting message and ping message
+                        .replace("\nThis make take a while depending on the size of the server. We'll ping you when we're done counting.", "")
+                        +
+                        // Text Channels (in bold)
+                        "**" + category.getName() + "**\n" +
+                        // Ping message
+                        "\nThis make take a while depending on the size of the server. We'll ping you when we're done counting."
+        );
+        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
     }
 
     private void addTotalToEmbed(int total) {
@@ -118,8 +175,26 @@ public class MessageFetcher {
                         // Total: 5000 messages
                         "\nTotal: **" + total + "** messages"
         );
-        embedBuilder.setTitle(user.getName() + "'s Messages in " + guild.getName());
+        embedBuilder.setTitle(target.getName() + "'s Messages in " + guild.getName());
         embedBuilder.setColor(new Color(0x00BB05));
-        hook.editOriginalEmbeds(embedBuilder.build()).queue();
+        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
+    }
+
+    // GETTERS
+
+    public Message getCounterEmbedMessage() {
+        return counterEmbedMessage;
+    }
+
+    public User getRunner() {
+        return runner;
+    }
+
+    public Guild getGuild() {
+        return guild;
+    }
+
+    public User getTarget() {
+        return target;
     }
 }
