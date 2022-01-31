@@ -34,14 +34,17 @@ public class MessageFetcher {
     }
 
     public void startCounter() {
+        Message message = hook.sendMessage("Started. Check the sent embed for the current status.").complete();
+
         if (!channel.canTalk()) {
             // Send in DMs
             counterEmbedMessage = runner.openPrivateChannel().complete().sendMessageEmbeds(embedBuilder.build()).complete();
         } else {
-            counterEmbedMessage = channel.sendMessageEmbeds(embedBuilder.build()).complete();
+            counterEmbedMessage = channel
+                    .sendMessageEmbeds(embedBuilder.build())
+                    .reference(message)
+                    .complete();
         }
-
-        hook.sendMessage("Started. Check the sent embed for the current status.").queue();
 
         // Clone channels into our own editable list
         channelsToCount.addAll(guild.getChannels());

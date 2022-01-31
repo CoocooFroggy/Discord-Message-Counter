@@ -12,7 +12,7 @@ public class Main {
     public static void main(String[] args) throws InterruptedException {
         String token = System.getenv("MESSAGE_COUNTER_TOKEN");
         JDABuilder jdaBuilder = JDABuilder
-                .createDefault(token)
+                .createLight(token)
                 .setActivity(Activity.watching("users' messages"));
         try {
             jda = jdaBuilder.build();
