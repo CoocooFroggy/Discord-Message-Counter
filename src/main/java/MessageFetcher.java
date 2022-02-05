@@ -6,6 +6,8 @@ import net.dv8tion.jda.api.interactions.InteractionHook;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MessageFetcher {
     private final InteractionHook hook;
@@ -127,7 +129,7 @@ public class MessageFetcher {
                         // Ping message
                         "\nThis make take a while depending on the size of the server. We'll ping you when we're done counting."
         );
-        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
+//        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
     }
 
     private void embedNoPerms(TextChannel channel) {
@@ -140,7 +142,7 @@ public class MessageFetcher {
                         // Ping message
                         "\nThis make take a while depending on the size of the server. We'll ping you when we're done counting."
         );
-        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
+//        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
     }
 
     private void addChannelToEmbed(TextChannel channel, int channelCount) {
@@ -155,7 +157,7 @@ public class MessageFetcher {
                         // Ping message
                         "\nThis make take a while depending on the size of the server. We'll ping you when we're done counting."
         );
-        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
+//        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
     }
 
     private void addCategoryToEmbed(Category category) {
@@ -169,15 +171,31 @@ public class MessageFetcher {
                         // Ping message
                         "\nThis make take a while depending on the size of the server. We'll ping you when we're done counting."
         );
-        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
+//        counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
     }
 
     private void addTotalToEmbed(int total) {
-        embedBuilder.setDescription(
-                embedBuilder.getDescriptionBuilder().toString().replace("\nThis make take a while depending on the size of the server. We'll ping you when we're done counting.", "") +
-                        // Total: 5000 messages
-                        "\nTotal: **" + total + "** messages"
-        );
+
+        // Ensure we're not over 4096 messages
+        String description = embedBuilder.getDescriptionBuilder().toString().replace("\nThis make take a while depending on the size of the server. We'll ping you when we're done counting.", "");
+        String finalLine = // Total: 5000 messages
+                "\nTotal: **" + total + "** messages";
+
+        if (description.length() + finalLine.length() > 4096) {
+            String tooManyMessage = "\nMore channels were counted, but could not fit in the embed.\n";
+            String maximumDescription = description.substring(0, 4096 - tooManyMessage.length() - finalLine.length());
+            // Cut off at the last new line
+            Pattern pattern = Pattern.compile(".*\\n", Pattern.DOTALL);
+            Matcher matcher = pattern.matcher(maximumDescription);
+            if (matcher.find())
+                description = matcher.group(0) + tooManyMessage + finalLine;
+            else
+                description += finalLine;
+        } else {
+            description = description + finalLine;
+        }
+
+        embedBuilder.setDescription(description);
         embedBuilder.setTitle(target.getName() + "'s Messages in " + guild.getName());
         embedBuilder.setColor(new Color(0x00BB05));
         counterEmbedMessage.editMessageEmbeds(embedBuilder.build()).queue();
