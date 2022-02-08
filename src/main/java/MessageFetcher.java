@@ -1,6 +1,7 @@
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.interactions.InteractionHook;
 
 import java.awt.*;
@@ -36,12 +37,18 @@ public class MessageFetcher {
     }
 
     public void startCounter() {
-        Message message = hook.sendMessage("Started. Check the sent embed for the current status.").complete();
-
         if (!channel.canTalk()) {
             // Send in DMs
-            counterEmbedMessage = runner.openPrivateChannel().complete().sendMessageEmbeds(embedBuilder.build()).complete();
+            PrivateChannel privateChannel = runner.openPrivateChannel().complete();
+            try {
+                counterEmbedMessage = privateChannel.sendMessageEmbeds(embedBuilder.build()).complete();
+            } catch (ErrorResponseException e) {
+                hook.sendMessage("Unable to start, I cannot send direct messages to you.").complete();
+                return;
+            }
+            hook.sendMessage("Started. Check the sent embed for the current status.").complete();
         } else {
+            Message message = hook.sendMessage("Started. Check the sent embed for the current status.").complete();
             counterEmbedMessage = channel
                     .sendMessageEmbeds(embedBuilder.build())
                     .reference(message)
